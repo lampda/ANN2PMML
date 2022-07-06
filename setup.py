@@ -9,22 +9,22 @@ with open('README.rst') as readme_file:
     long_description = readme_file.read()
 
 setup(
-    name='keras2pmml',
-    version='0.1.0',
-    packages=['keras2pmml'],
+    name='ann2pmml',
+    version='1.0.2',
+    packages=['ann2pmml'],
     include_package_data=True,
     license='MIT',
-    description='Simple exporter of Keras models into PMML',
+    description='Auto PMML Exporter of Nerual Network Models.',
     long_description=long_description,
-    url='https://github.com/vaclavcadek/keras2pmml',
-    author='Václav Čadek',
-    author_email='vaclavcadek@gmail.com',
+    url='https://github.com/lampda/ANN2PMML',
+    author='lampda',
+    author_email='saintree@gmail.com',
     install_requires=[
         'numpy>=1.6.1',
-        'SciPy>= 0.9',
-        'theano>=0.8.2',
-        'keras>=1.0.6',
-        'scikit-learn>=0.18'
+        'SciPy>=0.9',
+        'tensorflow>=1.12.0',
+        'keras>=1.0.6,<=2.3.1',
+        'scikit-learn>=0.22'
     ],
     classifiers=[
         'Intended Audience :: Science/Research',

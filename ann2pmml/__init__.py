@@ -3,22 +3,26 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 from datetime import datetime
-from keras.models import Sequential
+import tensorflow
+import keras
+from tensorflow.keras.models import Sequential
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-SUPPORTED_MODELS = frozenset([Sequential])
+SUPPORTED_MODELS = frozenset([tensorflow.keras.models.Sequential, keras.models.Sequential])
 SUPPORTED_TRANSFORMERS = frozenset([StandardScaler, MinMaxScaler])
 SUPPORTED_ACTIVATIONS = {
     'tanh': 'tanh',
     'sigmoid': 'logistic',
     'relu': 'rectifier', 
-    'softmax': 'identity'
+    'softmax': 'identity',
+    'linear': 'identity',
+    'none': 'None'
 }
 
 
 def _get_activations(model_config):
     layers = model_config['layers'] if isinstance(model_config, dict) else model_config
-    return map(lambda x: x['config']['activation'], layers)
+    return map(lambda x: x['config']['activation'] if 'activation' in x['config'] else 'none', layers)
 
 
 def _validate_inputs(model, transformer, feature_names, target_values):
@@ -172,7 +176,10 @@ def _generate_neural_layers(neural_network, estimator):
         biases = params[1].astype(str)
         activation = params[2]
         neural_layer = ET.SubElement(neural_network, 'NeuralLayer')
-        if activation == 'softmax':
+        if activation == 'none':
+            # in cases where there is no activation
+            pass
+        elif activation == 'softmax':
             # if the output layer is multiclass classification, then we use the 
             # 'identity' activation function and normalize the output using 'softmax'. 
             # For details, see http://dmg.org/pmml/v4-3/NeuralNetwork.html
@@ -206,11 +213,11 @@ def _generate_neural_outputs(neural_network, estimator, target_name, target_valu
         norm_discrete.set('value', target_values[i])
 
 
-def keras2pmml(estimator, transformer=None, file=None, **kwargs):
+def ann2pmml(estimator, transformer=None, file=None, **kwargs):
     """
-    Exports Keras model as PMML.
+    Exports Keras/TF model as PMML.
 
-    :param estimator: Keras model to be exported as PMML (for supported models - see bellow).
+    :param estimator: Keras/TF model to be exported as PMML (for supported models - see bellow).
     :param transformer: if provided then scaling is applied to data fields.
     :param file: name of the file where the PMML will be exported.
     :param kwargs: set of params that affects PMML metadata - see documentation for details.
@@ -225,8 +232,8 @@ def keras2pmml(estimator, transformer=None, file=None, **kwargs):
     feature_names, target_values = _validate_inputs(estimator, transformer, feature_names, target_values)
 
     pmml = ET.Element('PMML')
-    pmml.set('version', '4.3')
-    pmml.set('xmlns', 'http://www.dmg.org/PMML-4_3')
+    pmml.set('version', '4.4')
+    pmml.set('xmlns', 'http://www.dmg.org/PMML-4_4')
     _generate_header(pmml, kwargs)
     _generate_data_dictionary(pmml, feature_names, target_name, target_values)
     _generate_neural_network(pmml, estimator, transformer, feature_names, target_name, target_values, model_name)

@@ -1,7 +1,7 @@
-keras2pmml
+ann2pmml
 ==========
 
-Keras2pmml is simple exporter for Keras models (for supported models see bellow) into PMML text format which address
+ann2pmml is an automated pmml exporter for neural network models (for supported models see bellow) into PMML text format which address
 the problems mentioned bellow.
 
 Storing predictive models using binary format (e.g. Pickle) may be dangerous from several perspectives - naming few:
@@ -17,11 +17,11 @@ through optimization space.
 Installation
 ------------
 
-To install keras2pmml, simply:
+To install ann2pmml, simply:
 
 .. code-block:: bash
 
-    $ pip install keras2pmml
+    $ pip install ann2pmml
 
 Example
 -------
@@ -30,22 +30,20 @@ Example on Iris data - for more examples see the examples folder.
 
 .. code-block:: python
 
-    from keras2pmml import keras2pmml
+    from ann2pmml import ann2pmml
     from sklearn.datasets import load_iris
     import numpy as np
-    import theano
     from sklearn.cross_validation import train_test_split
     from sklearn.preprocessing import StandardScaler
-    from keras.utils import np_utils
-    from keras.models import Sequential
-    from keras.layers.core import Dense
+    from tensorflow.keras.utils import to_categorical
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense
 
     iris = load_iris()
     X = iris.data
     y = iris.target
 
-    theano.config.floatX = 'float32'
-    X = X.astype(theano.config.floatX)
+    X = X.astype(np.float32)
     y = y.astype(np.int32)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3)
@@ -53,32 +51,33 @@ Example on Iris data - for more examples see the examples folder.
     std = StandardScaler()
     X_train_scaled = std.fit_transform(X_train)
     X_test_scaled = std.transform(X_test)
-    y_train_ohe = np_utils.to_categorical(y_train)
-    y_test_ohe = np_utils.to_categorical(y_test)
+    y_train_ohe = to_categorical(y_train)
+    y_test_ohe = to_categorical(y_test)
 
     model = Sequential()
-    model.add(Dense(input_dim=X_train.shape[1], output_dim=5, activation='tanh'))
-    model.add(Dense(input_dim=5, output_dim=y_test_ohe.shape[1], activation='sigmoid'))
+    model.add(Dense(units=X_train.shape[1], input_shape=(X_train_scaled.shape[1],), activation='tanh'))
+    model.add(Dense(units=5, activation='tanh'))
+    model.add(Dense(units=y_test_ohe.shape[1], activation='sigmoid'))
     model.compile(loss='categorical_crossentropy', optimizer='sgd')
-    model.fit(X_train_scaled, y_train_ohe, nb_epoch=10, batch_size=1, verbose=3,
+    model.fit(X_train_scaled, y_train_ohe, nb_epoch=10, batch_size=1, verbose=1,
               validation_data=(X_test_scaled, y_test_ohe))
 
     params = {
         'feature_names': ['sepal_length', 'sepal_width', 'petal_length', 'petal_width'],
         'target_values': ['setosa', 'virginica', 'versicolor'],
         'target_name': 'specie',
-        'copyright': 'Václav Čadek',
+        'copyright': 'lampda',
         'description': 'Simple Keras model for Iris dataset.',
         'model_name': 'Iris Model'
     }
 
-    keras2pmml(estimator=model, transformer=std, file='keras_iris.pmml', **params)
+    ann2pmml(estimator=model, transformer=std, file='keras_iris.pmml', **params)
 
 
 
 Params explained
 ----------------
-- **estimator**: Keras model to be exported as PMML (for supported models - see bellow).
+- **estimator**: Keras/TF model to be exported as PMML (for supported models - see bellow).
 - **transformer**: if provided (and it's supported - see bellow) then scaling is applied to data fields.
 - **file**: name of the file where the PMML will be exported.
 - **feature_names**: when provided and have same shape as input layer, then features will have custom names, otherwise generic names (x\ :sub:`0`\,..., x\ :sub:`n-1`\) will be used.
@@ -95,6 +94,7 @@ What is supported?
 - Activation functions
     * tanh
     * sigmoid/logistic
+    * linear
     * softmax normalization on the output layer (with activation identity on output units)
 - Scalers
     * sklearn.preprocessing.StandardScaler

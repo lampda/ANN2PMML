@@ -1,32 +1,31 @@
 import unittest
 
-from keras2pmml import keras2pmml
+from ann2pmml import ann2pmml
 from sklearn.datasets import load_iris
 import numpy as np
-import theano
-from keras.utils import np_utils
-from keras.models import Sequential
-from keras.layers.core import Dense
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 
 
 class GenericFieldsTestCase(unittest.TestCase):
     def setUp(self):
         iris = load_iris()
 
-        theano.config.floatX = 'float32'
-        X = iris.data.astype(theano.config.floatX)
+        X = iris.data.astype(np.float32)
         y = iris.target.astype(np.int32)
-        y_ohe = np_utils.to_categorical(y)
+        y_ohe = to_categorical(y)
 
         model = Sequential()
-        model.add(Dense(input_dim=X.shape[1], output_dim=5, activation='tanh'))
-        model.add(Dense(input_dim=5, output_dim=y_ohe.shape[1], activation='sigmoid'))
+        model.add(Dense(units=X.shape[1], input_shape=(X.shape[1],), activation='tanh'))
+        model.add(Dense(units=5, activation='sigmoid'))
+        model.add(Dense(units=y_ohe.shape[1], activation='sigmoid'))
         model.compile(loss='categorical_crossentropy', optimizer='sgd')
         model.fit(X, y_ohe, nb_epoch=10, batch_size=1, verbose=3, validation_data=None)
 
-        params = {'copyright': 'Václav Čadek', 'model_name': 'Iris Model'}
+        params = {'copyright': 'lampda', 'model_name': 'Iris Model'}
         self.model = model
-        self.pmml = keras2pmml(self.model, **params)
+        self.pmml = ann2pmml(self.model, **params)
         self.num_inputs = self.model.input_shape[1]
         self.num_outputs = self.model.output_shape[1]
         self.num_connection_layers = len(self.model.layers)
